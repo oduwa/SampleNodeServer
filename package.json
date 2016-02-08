@@ -1,0 +1,22 @@
+{
+  "name": "samplenodeserver",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/oduwa/SampleNodeServer.git"
+  },
+  "author": "Odie",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/oduwa/SampleNodeServer/issues"
+  },
+  "homepage": "https://github.com/oduwa/SampleNodeServer#readme",
+  "dependencies": {
+    "express": "^4.13.4"
+  }
+}
