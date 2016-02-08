@@ -8,7 +8,7 @@ var CronJob = require('cron').CronJob;
 var job = new CronJob({
   cronTime: '*/1 * * * *',
   onTick: function() {
-      jobCouter++;
+      jobCounter++;
       console.log("Ran job for the " + jobCounter + "th time");
   },
   start: false,
