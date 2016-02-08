@@ -9,6 +9,7 @@ var job = new CronJob({
   cronTime: '*/1 * * * *',
   onTick: function() {
       jobCounter++;
+      app.set('counter', jobCounter);
       console.log("Ran job for the " + jobCounter + "th time");
   },
   start: false,
@@ -17,11 +18,11 @@ var job = new CronJob({
 app.set('port', (process.env.PORT || 5000));
 
 app.get('/', function (req, res) {
-  res.send('Hello World from odie!\n' + 'Has run job ' + jobCounter + ' times');
+  res.send('Hello World from odie!\n' + 'Has run job ' + app.get('counter') + ' times');
 });
 
 app.listen(app.get('port'), function () {
-  console.log('Example app listening on port 3000!');
+  console.log('Example app listening on port 5000!');
 });
 
 job.start();
