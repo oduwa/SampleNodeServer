@@ -17,7 +17,7 @@ var job = new CronJob({
 app.set('port', (process.env.PORT || 5000));
 
 app.get('/', function (req, res) {
-  res.send('Hello World from odie!');
+  res.send('Hello World from odie!\n' + 'Has run job ' + jobCounter + ' times');
 });
 
 app.listen(app.get('port'), function () {
