@@ -11,15 +11,15 @@ enum DrawMode
 
 class SimpleWhiteboardControls extends JPanel implements ActionListener, MouseListener, KeyListener
 {
-  private SimpleWhiteboardPanel simpleWhiteboardPanel;
-  private JComboBox drawModeComboBox;
-  private JButton colorButton;
-  private static String[] drawModeName = {"line", "text"};
-  private DrawMode drawMode;
-  private Color color;
-  private Point point;
-  private String fontname;
-  private int fontsize;
+  protected SimpleWhiteboardPanel simpleWhiteboardPanel;
+  protected JComboBox drawModeComboBox;
+  protected JButton colorButton;
+  protected static String[] drawModeName = {"line", "text"};
+  protected DrawMode drawMode;
+  protected Color color;
+  protected Point point;
+  protected String fontname;
+  protected int fontsize;
 
   public SimpleWhiteboardControls(SimpleWhiteboardPanel simpleWhiteboardPanel)
   {

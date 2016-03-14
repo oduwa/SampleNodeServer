@@ -6,13 +6,23 @@
 package simplewhiteboard;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JMenu;
@@ -43,11 +53,22 @@ class WhiteboardNodeControls extends SimpleWhiteboardControls {
   {
     super.drawLine(newPoint);
         try {
-            node.sendMessage("HELLO THUR", 55555);
+            // Send new point to controller
+            // p:x,y:<colour>>
+            node.sendControllerMessage("p:" + newPoint.x + "," + newPoint.y + ":" + color.getRGB() + ":");
+            
+            // Send new point to all connected nodes
+            // <sender_none_name>:(x,y):<colour>>
+            node.sendMessage(node.name + ":" + newPoint.x + "," + newPoint.y + ":" + color.getRGB() + ":", 55555);
+            //node.sendMessage("HELLO THUR", 55555);
         } catch (Exception ex) {
             Logger.getLogger(WhiteboardNodeControls.class.getName()).log(Level.SEVERE, null, ex);
         }
   }
+    
+    public void drawLineInView(Point newPoint){
+        super.drawLine(newPoint);
+    }
     
 }
 
@@ -83,6 +104,8 @@ public class WhiteboardNode extends SimpleWhiteboard {
     public String name;
     boolean shouldListen = false;
     Thread listenThread;
+    
+    private ServerSocket tcpServerSocket;
 
     public WhiteboardNode(String nodename, int width, int height) {
         super(nodename, width, height);
@@ -152,9 +175,16 @@ public class WhiteboardNode extends SimpleWhiteboard {
             
         // Send message to controller to request all existing points
         try {
-            sendControllerMessage("r" + name);
+            // start tcp server to await receipt of existing points
+            tcpServerSocket = new ServerSocket(Utility.TCP_PORT);
+            TcpServerThread serverThread = new TcpServerThread(tcpServerSocket, this);
+            serverThread.start();
+            
+            // send request
+            sendControllerMessage("r" + ":" + name + ":" + InetAddress.getLocalHost().getHostAddress() + ":");
             String ctrlrMsg = receiveControllerMessage();
             System.out.println("CONTROLLER SAID: " + ctrlrMsg);
+            
         } catch (Exception ex) {
             Logger.getLogger(WhiteboardNode.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -167,7 +197,13 @@ public class WhiteboardNode extends SimpleWhiteboard {
                 while(shouldListen){
                     try {
                         String msg = context.receiveMessage();
-                        System.out.println("RECEIVED MESSAGE: " + msg);
+                        String[] msgComponents = msg.split(":");
+                        String senderName = msgComponents[0];
+                        System.out.println("RECEIVED MESSAGE: " + msgComponents[1]);
+                        if(!senderName.equalsIgnoreCase(context.name)){
+                            context.whiteboardControls.color = new Color(Integer.parseInt(msgComponents[2]));
+                            context.whiteboardControls.drawLineInView(Utility.convertStringToPoint(msgComponents[1]));
+                        }
                     } 
                     catch (Exception ex) {
                         System.out.println("ERROR LISTENING FOR MESSAGE");
@@ -183,6 +219,60 @@ public class WhiteboardNode extends SimpleWhiteboard {
         shouldListen = false;
         listenThread.interrupt();
         System.out.println("MULTICAST NODE " + name + " STOPPED LISTENING.");
+    }
+    
+    private class TcpServerThread extends Thread {
+
+        private ServerSocket serverSocket;
+        private DataInputStream input;
+        private DataOutputStream output;
+        private PrintWriter printOutput;
+        
+        WhiteboardNode node;
+
+        public TcpServerThread(ServerSocket serverSocket, WhiteboardNode node) {
+            this.serverSocket = serverSocket;
+            this.node = node;
+        }
+
+        @Override
+        public void run() {
+            //while (true) {
+                try {
+                    Socket socket = serverSocket.accept();
+
+                    input = new DataInputStream(socket.getInputStream());
+                    output = new DataOutputStream(socket.getOutputStream());
+                    
+                    String points = Utility.readTcpMessage(input);
+                    if (points != null) {
+                        System.out.println(points);
+                        Utility.PointBundle bundle = Utility.convertStringToPointsAndColors(points);
+                        ArrayList<Point> pointList = bundle.points;
+                        ArrayList<Color> colorList = bundle.colors;
+
+
+                        for (int i = 0; i < pointList.size(); i++) {
+                            Point point = pointList.get(i);
+                            Color color = colorList.get(i);
+                            node.whiteboardControls.color = color;
+                            node.whiteboardControls.drawLineInView(point);
+                        }
+                    }
+
+                    
+                    socket.close();
+                    serverSocket.close();
+
+                } catch (IOException ex) {
+                    Logger.getLogger(Utility.class.getName()).
+                            log(Level.SEVERE, null, ex);
+                }
+            //}
+        }
+
+        
+
     }
 
 }
