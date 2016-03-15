@@ -29,7 +29,7 @@ public class SimpleWhiteboardDemo implements Runnable
   public static void main(String[] args) throws Exception
   {
     JFrame.setDefaultLookAndFeelDecorated(true);
-    String nodename = "defaultnode1";
+    String nodename = "defaultnode3";
     if (args.length > 0)
     {
       nodename = args[0];

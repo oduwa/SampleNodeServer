@@ -51,25 +51,46 @@ class WhiteboardNodeControls extends SimpleWhiteboardControls {
     @Override
     public void drawLine(Point newPoint)
   {
-    super.drawLine(newPoint);
-        try {
+      super.drawLine(newPoint);
+      try {
             // Send new point to controller
-            // p:x,y:<colour>>
-            node.sendControllerMessage("p:" + newPoint.x + "," + newPoint.y + ":" + color.getRGB() + ":");
-            
+          // p:x,y:<colour>>
+          node.sendControllerMessage("p:" + newPoint.x + "," + newPoint.y + ":" + color.getRGB() + ":");
+
             // Send new point to all connected nodes
-            // <sender_none_name>:(x,y):<colour>>
-            node.sendMessage(node.name + ":" + newPoint.x + "," + newPoint.y + ":" + color.getRGB() + ":", 55555);
-            //node.sendMessage("HELLO THUR", 55555);
-        } catch (Exception ex) {
-            Logger.getLogger(WhiteboardNodeControls.class.getName()).log(Level.SEVERE, null, ex);
-        }
+          // p:<sender_none_name>:(x,y):<colour>>
+          node.sendMessage("p:" + node.name + ":" + newPoint.x + "," + newPoint.y + ":" + color.getRGB() + ":", 55555);
+      } catch (Exception ex) {
+          Logger.getLogger(WhiteboardNodeControls.class.getName()).log(Level.SEVERE, null, ex);
+      }
   }
     
     public void drawLineInView(Point newPoint){
         super.drawLine(newPoint);
     }
     
+    @Override
+    public void drawString(String s){
+        super.drawString(s);
+        
+        if (this.point != null) {
+            try {
+            // Send new string to controller
+                // s:<TEXT>:<TEXT_POINT>
+                node.sendControllerMessage("s:" + s + ":" + this.point.x +"," + this.point.y + ":");
+
+            // Send new string to all connected nodes
+                // t:<sender_none_name>:<TEXT>:<TEXT_POINT>
+                node.sendMessage("s:" + node.name + ":" + s + ":" + this.point.x + "," + this.point.y + ":", 55555);
+            } catch (Exception ex) {
+                Logger.getLogger(WhiteboardNodeControls.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+    }
+    
+    public void drawStringInView(String s){
+        super.drawString(s);
+    }
 }
 
 
@@ -197,12 +218,32 @@ public class WhiteboardNode extends SimpleWhiteboard {
                 while(shouldListen){
                     try {
                         String msg = context.receiveMessage();
-                        String[] msgComponents = msg.split(":");
-                        String senderName = msgComponents[0];
-                        System.out.println("RECEIVED MESSAGE: " + msgComponents[1]);
-                        if(!senderName.equalsIgnoreCase(context.name)){
-                            context.whiteboardControls.color = new Color(Integer.parseInt(msgComponents[2]));
-                            context.whiteboardControls.drawLineInView(Utility.convertStringToPoint(msgComponents[1]));
+                        
+                        if(msg.charAt(0) == 'p'){
+                            /*
+                             * Received message of the form 
+                             * p:<sender_none_name>:(x,y):<colour>
+                             */
+                            String[] msgComponents = msg.split(":");
+                            String senderName = msgComponents[1];
+                            System.out.println("RECEIVED MESSAGE: " + msgComponents[2]);
+                            if (!senderName.equalsIgnoreCase(context.name)) {
+                                context.whiteboardControls.color = new Color(Integer.parseInt(msgComponents[3]));
+                                context.whiteboardControls.drawLineInView(Utility.convertStringToPoint(msgComponents[2]));
+                            }
+                        }
+                        else if(msg.charAt(0) == 's'){
+                            /*
+                             * Received message of the form 
+                             * t:<sender_none_name>:<TEXT>:<TEXT_POINT>
+                             */
+                            String[] msgComponents = msg.split(":");
+                            String senderName = msgComponents[1];
+                            System.out.println("RECEIVED MESSAGE: " + msgComponents[2]);
+                            if (!senderName.equalsIgnoreCase(context.name)) {
+                                context.whiteboardControls.point = Utility.convertStringToPoint(msgComponents[3]);
+                                context.whiteboardControls.drawStringInView(msgComponents[2]);
+                            }
                         }
                     } 
                     catch (Exception ex) {
@@ -244,19 +285,27 @@ public class WhiteboardNode extends SimpleWhiteboard {
                     input = new DataInputStream(socket.getInputStream());
                     output = new DataOutputStream(socket.getOutputStream());
                     
-                    String points = Utility.readTcpMessage(input);
-                    if (points != null) {
-                        System.out.println(points);
-                        Utility.PointBundle bundle = Utility.convertStringToPointsAndColors(points);
-                        ArrayList<Point> pointList = bundle.points;
-                        ArrayList<Color> colorList = bundle.colors;
-
-
+                    String data = Utility.readTcpMessage(input);
+                    if (data != null && !data.equalsIgnoreCase("%%")) {
+                        System.out.println(data);
+                        Utility.ViewBundle viewBundle = Utility.convertStringToViewBundle(data);
+                        
+                        ArrayList<Point> pointList = viewBundle.pointBundle.points;
+                        ArrayList<Color> colorList = viewBundle.pointBundle.colors;
                         for (int i = 0; i < pointList.size(); i++) {
                             Point point = pointList.get(i);
                             Color color = colorList.get(i);
                             node.whiteboardControls.color = color;
                             node.whiteboardControls.drawLineInView(point);
+                        }
+                        
+                        ArrayList<String> textList = viewBundle.textBundle.texts;
+                        ArrayList<Point> textPointList = viewBundle.textBundle.textPoints;
+                        for (int i = 0; i < textPointList.size(); i++) {
+                            Point point = textPointList.get(i);
+                            String text = textList.get(i);
+                            node.whiteboardControls.point = point;
+                            node.whiteboardControls.drawStringInView(text);
                         }
                     }
 
