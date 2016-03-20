@@ -51,8 +51,8 @@ class WhiteboardNodeControls extends SimpleWhiteboardControls {
     @Override
     public void drawLine(Point newPoint)
   {
-      super.drawLine(newPoint);
       try {
+          System.out.println("SENDING POINT " + newPoint);
             // Send new point to controller
           // p:x,y:<colour>>
           node.sendControllerMessage("p:" + newPoint.x + "," + newPoint.y + ":" + color.getRGB() + ":");
@@ -63,6 +63,7 @@ class WhiteboardNodeControls extends SimpleWhiteboardControls {
       } catch (Exception ex) {
           Logger.getLogger(WhiteboardNodeControls.class.getName()).log(Level.SEVERE, null, ex);
       }
+      super.drawLine(newPoint);
   }
     
     public void drawLineInView(Point newPoint){
@@ -71,8 +72,6 @@ class WhiteboardNodeControls extends SimpleWhiteboardControls {
     
     @Override
     public void drawString(String s){
-        super.drawString(s);
-        
         if (this.point != null) {
             try {
             // Send new string to controller
@@ -86,6 +85,7 @@ class WhiteboardNodeControls extends SimpleWhiteboardControls {
                 Logger.getLogger(WhiteboardNodeControls.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
+        super.drawString(s);
     }
     
     public void drawStringInView(String s){
@@ -295,8 +295,8 @@ public class WhiteboardNode extends SimpleWhiteboard {
                         for (int i = 0; i < pointList.size(); i++) {
                             Point point = pointList.get(i);
                             Color color = colorList.get(i);
-                            node.whiteboardControls.color = color;
-                            node.whiteboardControls.drawLineInView(point);
+                            //node.whiteboardControls.color = color;
+                            //node.whiteboardControls.drawLineInView(point);
                         }
                         
                         ArrayList<String> textList = viewBundle.textBundle.texts;
@@ -304,9 +304,34 @@ public class WhiteboardNode extends SimpleWhiteboard {
                         for (int i = 0; i < textPointList.size(); i++) {
                             Point point = textPointList.get(i);
                             String text = textList.get(i);
-                            node.whiteboardControls.point = point;
-                            node.whiteboardControls.drawStringInView(text);
+                            //node.whiteboardControls.point = point;
+                            //node.whiteboardControls.drawStringInView(text);
                         }
+                        
+                        int linePointIndex = 0;
+                        int textPointIndex = 0;
+                        this.printArrayList(viewBundle.pointBundle.points);
+                        for(int i = 0; i < viewBundle.actionOrderList.size(); i++){
+                            System.out.println("ACTION: " + viewBundle.actionOrderList.get(i).name());
+                            if(viewBundle.actionOrderList.get(i) == WhiteboardController.DrawMode.LINE){
+                                Point point = pointList.get(linePointIndex);
+                                Color color = colorList.get(linePointIndex);
+                                node.whiteboardControls.color = color;
+                                node.whiteboardControls.drawLineInView(point);
+                                linePointIndex++;
+                            }
+                            else{
+                                Point point = textPointList.get(textPointIndex);
+                                String text = textList.get(textPointIndex);
+                                node.whiteboardControls.point = point;
+                                node.whiteboardControls.drawStringInView(text);
+                                textPointIndex++;
+                            }
+                        }
+                        
+                        System.out.println("XXX\nLP:" + pointList.size() + 
+                                "\nTP: " + textList.size() + "\nCL: " + 
+                                colorList.size());
                     }
 
                     
@@ -320,6 +345,11 @@ public class WhiteboardNode extends SimpleWhiteboard {
             //}
         }
 
+        public <T> void printArrayList(ArrayList<T> l){
+            for(T x : l){
+                System.out.println(x);
+            }
+        }
         
 
     }
