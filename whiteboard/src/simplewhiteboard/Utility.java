@@ -40,6 +40,7 @@ public class Utility {
         PointBundle pointBundle;
         TextBundle textBundle;
         ArrayList<WhiteboardController.DrawMode> actionOrderList;
+        ArrayList<Color> colors;
     }
     
     public static String convertPointsToString(ArrayList<Point> points){
@@ -176,6 +177,13 @@ public class Utility {
         ArrayList<String> texts = new ArrayList<String>();
         ArrayList<Point> textPoints = new ArrayList<Point>();
         
+        if(input.isEmpty()){
+            bundle.texts = texts;
+            bundle.textPoints = textPoints;
+        
+            return bundle;
+        }
+        
         String[] bundleStrings = input.split(";");
         
         for(String bundleString : bundleStrings){
@@ -216,6 +224,34 @@ public class Utility {
         return orderList;
     }
     
+    public static String generateStringForColors(ArrayList<Color> colors){
+        StringBuilder bldr = new StringBuilder();
+        
+        for(int i = 0; i < colors.size(); i++){
+            String colourString = "" + colors.get(i).getRGB();
+  
+            bldr.append(colourString);
+            
+            if(i != colors.size()-1){
+                bldr.append(";");
+            }
+        }
+        
+        return bldr.toString();
+    }
+    
+    public static ArrayList<Color> convertStringToColorList(String input){
+        ArrayList<Color> colors = new ArrayList<Color>();
+        
+        String[] colorStrings = input.split(";");
+        
+        for(String color : colorStrings){
+            colors.add(new Color(Integer.parseInt(color)));
+        }
+
+        return colors;
+    }
+    
     /**
      * 
      * 
@@ -224,7 +260,7 @@ public class Utility {
      * @param texts
      * @param textPoints
      * @return Returns string of the format 
-     * <point_buffer_representation>%<text_buffer_representation>%<order_list_representation>
+     * <point_buffer_representation>%<text_buffer_representation>%<order_list_representation>%<color_list_representation>
      */
     public static String generateStringForViewComponents(
       ArrayList<Point> points,ArrayList<Color> colors,ArrayList<String> texts, ArrayList<Point> textPoints, ArrayList<WhiteboardController.DrawMode> orderList){
@@ -232,8 +268,9 @@ public class Utility {
         String pointsRepresentationString = Utility.generateStringForPointsAndColors(points, colors);
         String textsRepresentationString = Utility.generateStringForText(texts, textPoints);
         String drawingOrderRepresentation = Utility.generateStringForDrawingOrder(orderList);
+        String colorListRepresentation = Utility.generateStringForColors(colors);
         
-        return pointsRepresentationString + "%" + textsRepresentationString + "%" + drawingOrderRepresentation;
+        return pointsRepresentationString + "%" + textsRepresentationString + "%" + drawingOrderRepresentation + "%" + colorListRepresentation;
     }
     
     public static ViewBundle convertStringToViewBundle(String input){
@@ -243,10 +280,12 @@ public class Utility {
         String pointsRepresentationString = stringComponents[0];
         String textsRepresentationString = stringComponents[1];
         String drawingOrderRepresentation = stringComponents[2];
+        String colorListRepresentation = stringComponents[3];
         
         viewBundle.pointBundle = Utility.convertStringToPointsAndColors(pointsRepresentationString);
         viewBundle.textBundle = Utility.convertStringToTextBundle(textsRepresentationString);
         viewBundle.actionOrderList = Utility.convertStringToOrderList(drawingOrderRepresentation);
+        viewBundle.colors = Utility.convertStringToColorList(colorListRepresentation);
         
         return viewBundle;
     }

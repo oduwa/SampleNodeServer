@@ -112,9 +112,11 @@ public class WhiteboardController {
                             String[] msgComponents = msg.split(":");
                             String newText = msgComponents[1];
                             String pointString = msgComponents[2];
+                            String colourString = msg.split(":")[3];
                             Point newTextPoint = Utility.convertStringToPoint(pointString);
                             context.textBuffer.add(newText);
                             context.textPointBuffer.add(newTextPoint);
+                            context.colourBuffer.add(new Color(Integer.parseInt(colourString)));
                             context.actionOrderList.add(DrawMode.TEXT);
                             System.out.println("ADDED STRING " + "\"" + newText + "\"" + "AT POINT (" + pointString + ") to buffers");
                         }

@@ -46,6 +46,18 @@ class WhiteboardNodeControls extends SimpleWhiteboardControls {
     public WhiteboardNodeControls(SimpleWhiteboardPanel simpleWhiteboardPanel, WhiteboardNode node) {
         super(simpleWhiteboardPanel);
         this.node = node;
+        setUserInteractionEnabled(false);
+    }
+    
+    public void setUserInteractionEnabled(boolean isUserInteractionEnabled){
+        if(isUserInteractionEnabled){
+            this.simpleWhiteboardPanel.addMouseListener(this);
+            this.simpleWhiteboardPanel.addKeyListener(this);
+        }
+        else{
+            this.simpleWhiteboardPanel.removeMouseListener(this);
+            this.simpleWhiteboardPanel.removeKeyListener(this);
+        }
     }
     
     @Override
@@ -75,12 +87,12 @@ class WhiteboardNodeControls extends SimpleWhiteboardControls {
         if (this.point != null) {
             try {
             // Send new string to controller
-                // s:<TEXT>:<TEXT_POINT>
-                node.sendControllerMessage("s:" + s + ":" + this.point.x +"," + this.point.y + ":");
+                // s:<TEXT>:<TEXT_POINT>:<COLOR>
+                node.sendControllerMessage("s:" + s + ":" + this.point.x +"," + this.point.y + ":" + color.getRGB() + ":");
 
             // Send new string to all connected nodes
-                // t:<sender_none_name>:<TEXT>:<TEXT_POINT>
-                node.sendMessage("s:" + node.name + ":" + s + ":" + this.point.x + "," + this.point.y + ":", 55555);
+                // t:<sender_none_name>:<TEXT>:<TEXT_POINT>:<COLOR>
+                node.sendMessage("s:" + node.name + ":" + s + ":" + this.point.x + "," + this.point.y + ":" + color.getRGB() + ":", 55555);
             } catch (Exception ex) {
                 Logger.getLogger(WhiteboardNodeControls.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -106,9 +118,11 @@ class SimpleWhiteboardMenuActionListener implements ActionListener {
         System.err.println(String.format("menu action by odie: %s", actionEvent.getActionCommand()));
         
         if(actionEvent.getActionCommand().equalsIgnoreCase("Connect")){
+            node.getWhiteboardNodeControls().setUserInteractionEnabled(true);
             node.startListening();
         }
         else if(actionEvent.getActionCommand().equalsIgnoreCase("Disconnect")){
+            node.getWhiteboardNodeControls().setUserInteractionEnabled(false);
             node.stopListening();
         }
     }
@@ -116,17 +130,17 @@ class SimpleWhiteboardMenuActionListener implements ActionListener {
 
 public class WhiteboardNode extends SimpleWhiteboard {
 
-    private JScrollPane scrollPane;
-    private SimpleWhiteboardPanel simpleWhiteboardPanel;
-    private WhiteboardNodeControls whiteboardControls;
-    private JMenuBar menuBar;
-    private SimpleWhiteboardMenuActionListener menuActionListener;
+    protected JScrollPane scrollPane;
+    protected SimpleWhiteboardPanel simpleWhiteboardPanel;
+    protected WhiteboardNodeControls whiteboardControls;
+    protected JMenuBar menuBar;
+    protected SimpleWhiteboardMenuActionListener menuActionListener;
     
     public String name;
     boolean shouldListen = false;
     Thread listenThread;
     
-    private ServerSocket tcpServerSocket;
+    protected ServerSocket tcpServerSocket;
 
     public WhiteboardNode(String nodename, int width, int height) {
         super(nodename, width, height);
@@ -150,6 +164,11 @@ public class WhiteboardNode extends SimpleWhiteboard {
         
         this.name = nodename;
     }
+    
+    public WhiteboardNodeControls getWhiteboardNodeControls(){
+        return this.whiteboardControls;
+    }
+    
     
     public void sendMessage(String mes, int destPort) throws Exception {
         InetAddress remoteIP = InetAddress.getByName( "224.0.249.100" );
@@ -286,7 +305,7 @@ public class WhiteboardNode extends SimpleWhiteboard {
                     output = new DataOutputStream(socket.getOutputStream());
                     
                     String data = Utility.readTcpMessage(input);
-                    if (data != null && !data.equalsIgnoreCase("%%")) {
+                    if (data != null && !data.equalsIgnoreCase("%%%")) {
                         System.out.println(data);
                         Utility.ViewBundle viewBundle = Utility.convertStringToViewBundle(data);
                         
@@ -315,7 +334,7 @@ public class WhiteboardNode extends SimpleWhiteboard {
                             System.out.println("ACTION: " + viewBundle.actionOrderList.get(i).name());
                             if(viewBundle.actionOrderList.get(i) == WhiteboardController.DrawMode.LINE){
                                 Point point = pointList.get(linePointIndex);
-                                Color color = colorList.get(linePointIndex);
+                                Color color = viewBundle.colors.get(i);
                                 node.whiteboardControls.color = color;
                                 node.whiteboardControls.drawLineInView(point);
                                 linePointIndex++;
@@ -323,7 +342,9 @@ public class WhiteboardNode extends SimpleWhiteboard {
                             else{
                                 Point point = textPointList.get(textPointIndex);
                                 String text = textList.get(textPointIndex);
+                                Color color = viewBundle.colors.get(i);
                                 node.whiteboardControls.point = point;
+                                node.whiteboardControls.color = color;
                                 node.whiteboardControls.drawStringInView(text);
                                 textPointIndex++;
                             }
