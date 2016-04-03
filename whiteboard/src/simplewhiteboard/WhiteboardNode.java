@@ -135,16 +135,23 @@ public class WhiteboardNode extends SimpleWhiteboard {
     protected WhiteboardNodeControls whiteboardControls;
     protected JMenuBar menuBar;
     protected SimpleWhiteboardMenuActionListener menuActionListener;
+    protected int width;
+    protected int height;
+    protected String nodename;
     
     public String name;
     boolean shouldListen = false;
     Thread listenThread;
+    MulticastSocket multicastSocket;
     
     protected ServerSocket tcpServerSocket;
 
     public WhiteboardNode(String nodename, int width, int height) {
         super(nodename, width, height);
 
+        this.width = width;
+        this.height = height;
+        this.nodename = nodename;
         this.simpleWhiteboardPanel = new SimpleWhiteboardPanel(width, height);
         this.scrollPane = new JScrollPane(this.simpleWhiteboardPanel);
         this.getContentPane().add(this.scrollPane);
@@ -165,6 +172,25 @@ public class WhiteboardNode extends SimpleWhiteboard {
         this.name = nodename;
     }
     
+    public void reset(){
+        this.simpleWhiteboardPanel = new SimpleWhiteboardPanel(width, height);
+        this.scrollPane = new JScrollPane(this.simpleWhiteboardPanel);
+        this.getContentPane().add(this.scrollPane);
+        this.whiteboardControls = new WhiteboardNodeControls(this.simpleWhiteboardPanel, this);
+        this.getContentPane().add(this.whiteboardControls, BorderLayout.SOUTH);
+        this.menuBar = new JMenuBar();
+        this.menuActionListener = new SimpleWhiteboardMenuActionListener(this);
+        JMenu networkMenu = new JMenu("Network");
+        JMenuItem connectItem = new JMenuItem("Connect");
+        connectItem.addActionListener(this.menuActionListener);
+        JMenuItem disconnectItem = new JMenuItem("Disconnect");
+        disconnectItem.addActionListener(this.menuActionListener);
+        networkMenu.add(connectItem);
+        networkMenu.add(disconnectItem);
+        this.menuBar.add(networkMenu);
+        this.setJMenuBar(this.menuBar);
+    }
+    
     public WhiteboardNodeControls getWhiteboardNodeControls(){
         return this.whiteboardControls;
     }
@@ -181,11 +207,11 @@ public class WhiteboardNode extends SimpleWhiteboard {
 
     public String receiveMessage() throws Exception {
         InetAddress ia = InetAddress.getByName("224.0.249.100");
-        MulticastSocket mcs = new MulticastSocket(55555);
-        mcs.joinGroup(ia);
+        multicastSocket = new MulticastSocket(55555);
+        multicastSocket.joinGroup(ia);
         byte[] buffer = new byte[40];
         DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-        mcs.receive(packet);
+        multicastSocket.receive(packet);
         return new String(buffer);
     }
     
@@ -211,7 +237,9 @@ public class WhiteboardNode extends SimpleWhiteboard {
     public void startListening(){
         shouldListen = true;
         
-        // TODO: Clear points
+        // Clear any drawn points
+        this.simpleWhiteboardPanel.clear();
+       
             
         // Send message to controller to request all existing points
         try {
@@ -277,6 +305,7 @@ public class WhiteboardNode extends SimpleWhiteboard {
     
     public void stopListening(){
         shouldListen = false;
+        multicastSocket.close();
         listenThread.interrupt();
         System.out.println("MULTICAST NODE " + name + " STOPPED LISTENING.");
     }
@@ -300,33 +329,28 @@ public class WhiteboardNode extends SimpleWhiteboard {
             //while (true) {
                 try {
                     Socket socket = serverSocket.accept();
+                    System.out.println("ACCEPTED");
 
                     input = new DataInputStream(socket.getInputStream());
                     output = new DataOutputStream(socket.getOutputStream());
                     
+                    System.out.println("Waiting to read...");
                     String data = Utility.readTcpMessage(input);
+                    System.out.println("Read: " + data + "x");
+                    while(data == null){
+                        data = Utility.readTcpMessage(input);
+                    System.out.println("Read: " + data + "x");
+                    }
+                    
                     if (data != null && !data.equalsIgnoreCase("%%%")) {
                         System.out.println(data);
                         Utility.ViewBundle viewBundle = Utility.convertStringToViewBundle(data);
                         
                         ArrayList<Point> pointList = viewBundle.pointBundle.points;
                         ArrayList<Color> colorList = viewBundle.pointBundle.colors;
-                        for (int i = 0; i < pointList.size(); i++) {
-                            Point point = pointList.get(i);
-                            Color color = colorList.get(i);
-                            //node.whiteboardControls.color = color;
-                            //node.whiteboardControls.drawLineInView(point);
-                        }
-                        
                         ArrayList<String> textList = viewBundle.textBundle.texts;
                         ArrayList<Point> textPointList = viewBundle.textBundle.textPoints;
-                        for (int i = 0; i < textPointList.size(); i++) {
-                            Point point = textPointList.get(i);
-                            String text = textList.get(i);
-                            //node.whiteboardControls.point = point;
-                            //node.whiteboardControls.drawStringInView(text);
-                        }
-                        
+                    
                         int linePointIndex = 0;
                         int textPointIndex = 0;
                         this.printArrayList(viewBundle.pointBundle.points);

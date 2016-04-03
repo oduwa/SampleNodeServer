@@ -71,6 +71,14 @@ public class SimpleWhiteboardPanel extends JPanel
     this.repaint();
     return (newPoint);
   }
+  
+    public void clear() {
+        Graphics g = this.image.getGraphics();
+        g.setColor(Color.WHITE);
+        g.fillRect(0, 0, this.image.getWidth(null), this.image.getHeight(null));
+        g.dispose();
+        repaint();
+    }
 
   public void paintComponent(Graphics graphics)
   {

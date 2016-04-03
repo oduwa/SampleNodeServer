@@ -94,6 +94,10 @@ public class WhiteboardController {
                             //Utility.writeTcpMessage(Utility.generateStringForPointsAndColors(context.pointBuffer, context.colourBuffer), output);
                             String data = Utility.generateStringForViewComponents(context.pointBuffer, context.colourBuffer, context.textBuffer, context.textPointBuffer, context.actionOrderList);
                             Utility.writeTcpMessage(data, output);
+                            //output.close();
+                            //connectionSocket.getOutputStream().close();
+                            //connectionSocket.close();
+                            
 
                             Thread.sleep(3000);
                         } 

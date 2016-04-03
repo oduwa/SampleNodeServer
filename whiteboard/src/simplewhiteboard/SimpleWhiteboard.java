@@ -94,6 +94,7 @@ class SimpleWhiteboardControls extends JPanel implements ActionListener, MouseLi
 
   private void colorActionPerformed(ActionEvent actionEvent)
   {
+      
     color = JColorChooser.showDialog(this.simpleWhiteboardPanel, "choose colour", this.color);
     if (color != null)
     {
